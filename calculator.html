@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계산기</title>
+    <style>
+        /* 전체 페이지 스타일 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* 계산기 전체 박스 */
+        .calculator {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 320px;
+            padding: 20px;
+        }
+
+        /* 결과를 보여주는 화면 */
+        .display {
+            background: #2d3436;
+            color: #00ff00;
+            font-size: 2.5em;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: right;
+            margin-bottom: 20px;
+            min-height: 60px;
+            word-wrap: break-word;
+            word-break: break-all;
+            font-weight: bold;
+        }
+
+        /* 버튼들을 배열하는 격자 */
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        /* 모든 버튼의 기본 스타일 */
+        button {
+            padding: 20px;
+            font-size: 1.5em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        /* 숫자와 소수점 버튼 */
+        .number {
+            background: #f0f0f0;
+            color: #2d3436;
+        }
+
+        .number:hover {
+            background: #e0e0e0;
+            transform: scale(1.05);
+        }
+
+        /* 연산자 버튼 (+, -, ×, ÷) */
+        .operator {
+            background: #667eea;
+            color: white;
+        }
+
+        .operator:hover {
+            background: #5568d3;
+            transform: scale(1.05);
+        }
+
+        /* 특수 버튼 (C, =) */
+        .special {
+            background: #ff7675;
+            color: white;
+        }
+
+        .special:hover {
+            background: #d63031;
+            transform: scale(1.05);
+        }
+
+        /* = 버튼은 더 강조 */
+        .equals {
+            background: #00b894;
+            grid-column: span 2;
+        }
+
+        .equals:hover {
+            background: #00a383;
+        }
+
+        /* C(초기화) 버튼 */
+        .clear {
+            background: #ff7675;
+            grid-column: span 2;
+        }
+
+        .clear:hover {
+            background: #d63031;
+        }
+
+        /* 버튼 클릭 효과 */
+        button:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <!-- 계산기 메인 컨테이너 -->
+    <div class="calculator">
+        <!-- 계산 결과를 표시하는 화면 -->
+        <div class="display" id="display">0</div>
+
+        <!-- 버튼 그룹 -->
+        <div class="buttons">
+            <!-- 첫 번째 줄: C 버튼과 삭제 버튼 -->
+            <button class="clear" onclick="clearDisplay()">C</button>
+            <button class="special" onclick="deleteLast()">←</button>
+
+            <!-- 두 번째 줄: 나누기 연산자와 숫자 -->
+            <button class="operator" onclick="appendOperator('÷')">÷</button>
+            <button class="number" onclick="appendNumber('7')">7</button>
+            <button class="number" onclick="appendNumber('8')">8</button>
+            <button class="number" onclick="appendNumber('9')">9</button>
+
+            <!-- 세 번째 줄: 곱하기 연산자와 숫자 -->
+            <button class="operator" onclick="appendOperator('×')">×</button>
+            <button class="number" onclick="appendNumber('4')">4</button>
+            <button class="number" onclick="appendNumber('5')">5</button>
+            <button class="number" onclick="appendNumber('6')">6</button>
+
+            <!-- 네 번째 줄: 빼기 연산자와 숫자 -->
+            <button class="operator" onclick="appendOperator('-')">-</button>
+            <button class="number" onclick="appendNumber('1')">1</button>
+            <button class="number" onclick="appendNumber('2')">2</button>
+            <button class="number" onclick="appendNumber('3')">3</button>
+
+            <!-- 다섯 번째 줄: 더하기 연산자와 0, 소수점 -->
+            <button class="operator" onclick="appendOperator('+')">+</button>
+            <button class="number" onclick="appendNumber('0')">0</button>
+            <button class="number" onclick="appendNumber('.')">.</button>
+
+            <!-- 여섯 번째 줄: 계산 결과 버튼 -->
+            <button class="equals" onclick="calculate()">=</button>
+        </div>
+    </div>
+
+    <script>
+        // 현재 입력된 값을 저장하는 변수
+        let display = document.getElementById('display');
+        let currentInput = '0';  // 현재 입력값
+        let previousInput = '';  // 이전 입력값
+        let operator = '';       // 사용자가 선택한 연산자
+        let shouldResetDisplay = false; // 다음 숫자를 입력할 때 화면을 초기화할지 여부
+
+        // 숫자나 소수점이 클릭되었을 때 실행되는 함수
+        function appendNumber(num) {
+            // 만약 화면을 초기화해야 한다면 (예: 연산자를 누른 직후)
+            if (shouldResetDisplay) {
+                currentInput = num;
+                shouldResetDisplay = false;
+            } else {
+                // 현재 입력값이 0이고 숫자를 누르면 0을 지우고 새 숫자로 시작
+                if (currentInput === '0' && num !== '.') {
+                    currentInput = num;
+                } else if (num === '.') {
+                    // 소수점이 이미 있으면 중복으로 추가하지 않기
+                    if (!currentInput.includes('.')) {
+                        currentInput += num;
+                    }
+                } else {
+                    currentInput += num;
+                }
+            }
+            // 화면에 현재 입력값 표시
+            updateDisplay();
+        }
+
+        // 연산자가 클릭되었을 때 실행되는 함수
+        function appendOperator(op) {
+            // 이미 연산자가 있다면 먼저 계산 실행
+            if (operator && !shouldResetDisplay) {
+                calculate();
+            }
+
+            // 현재 입력값을 이전 값으로 저장
+            previousInput = currentInput;
+            // 새로운 연산자 저장
+            operator = op;
+            // 다음 숫자 입력 시 화면을 초기화하도록 설정
+            shouldResetDisplay = true;
+        }
+
+        // 실제 계산을 수행하는 함수
+        function calculate() {
+            // 이전 값, 연산자, 현재 값이 모두 있을 때만 계산
+            if (operator && previousInput !== '') {
+                let result;
+                const prev = parseFloat(previousInput);
+                const current = parseFloat(currentInput);
+
+                // 연산자 종류에 따라 다른 계산 수행
+                switch (operator) {
+                    case '+':
+                        result = prev + current;
+                        break;
+                    case '-':
+                        result = prev - current;
+                        break;
+                    case '×':
+                        result = prev * current;
+                        break;
+                    case '÷':
+                        // 0으로 나누기 방지
+                        if (current === 0) {
+                            result = '오류: 0으로 나눌 수 없습니다';
+                        } else {
+                            result = prev / current;
+                        }
+                        break;
+                    default:
+                        result = current;
+                }
+
+                // 결과가 숫자인 경우 소수점 이하 10자리까지만 표시
+                if (typeof result === 'number') {
+                    currentInput = Math.round(result * 10000000000) / 10000000000;
+                } else {
+                    currentInput = result;
+                }
+
+                operator = '';
+                previousInput = '';
+                shouldResetDisplay = true;
+                updateDisplay();
+            }
+        }
+
+        // 화면을 초기화하는 함수
+        function clearDisplay() {
+            currentInput = '0';
+            previousInput = '';
+            operator = '';
+            shouldResetDisplay = false;
+            updateDisplay();
+        }
+
+        // 마지막 문자를 삭제하는 함수
+        function deleteLast() {
+            // 현재 입력값이 1글자 이상일 때만 삭제
+            if (currentInput.length > 1) {
+                currentInput = currentInput.slice(0, -1);
+            } else {
+                currentInput = '0';
+            }
+            updateDisplay();
+        }
+
+        // 화면을 업데이트하는 함수
+        function updateDisplay() {
+            display.textContent = currentInput;
+        }
+    </script>
+</body>
+</html>
